@@ -1,11 +1,11 @@
 {
-    "name": "Заметки - Офлайн Приложение",
+    "name": "Заметки - PWA Приложение",
     "short_name": "Заметки",
-    "description": "Приложение для заметок с офлайн-доступом (Service Worker)",
+    "description": "Приложение для заметок с офлайн-доступом, WebSocket и Push-уведомлениями",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#4CAF50",
+    "theme_color": "#4285f4",
     "orientation": "portrait-primary",
     "icons": [
         {

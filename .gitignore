@@ -1,12 +1,19 @@
+# ===== NODE.JS =====
+node_modules/
+npm-debug.log
+yarn-error.log
+
 # ===== VS CODE =====
 .vscode/
 .DS_Store
 
+# ===== VAPID КЛЮЧИ (НЕ КОММИТИТЬ!) =====
+vapid-keys.json
+*.pem
+*.key
+
 # ===== LOGS =====
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # ===== OS FILES =====
 Thumbs.db
