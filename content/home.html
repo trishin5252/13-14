@@ -1,23 +1,33 @@
 <div class="home-content">
     <h2 class="is-center">Добавить заметку</h2>
+    
+    <!-- Обычная заметка -->
     <form id="note-form" class="row is-center">
         <input class="col-9" type="text" id="note-input" placeholder="Введите текст заметки" required>
         <button class="col-3 button primary" type="submit">Добавить</button>
     </form>
 
+    <!-- Заметка с напоминанием -->
+    <form id="reminder-form" class="row is-center" style="margin-top: 1rem;">
+        <input class="col-3" type="text" id="reminder-text" placeholder="Текст напоминания" required>
+        <input class="col-3" type="date" id="reminder-date" required>
+        <input class="col-2" type="time" id="reminder-time-input" required>
+        <button class="col-4 button success" type="submit" style="white-space: nowrap;">
+            С напоминанием
+        </button>
+    </form>
+
     <h2 class="is-center" style="margin-top: 2rem;">Список заметок</h2>
     <ul id="notes-list" style="list-style: none; padding-left: 0;"></ul>
 
-    <div id="sw-status" class="card" style="margin-top: 2rem;">
-        <h3>Service Worker</h3>
-        <p id="sw-state">Статус: Проверка...</p>
-    </div>
-
-    <div class="card" style="margin-top: 1rem; background: #e3f2fd; border-left-color: #2196f3;">
-        <h3>📡 WebSocket</h3>
-        <p id="ws-status">Подключение...</p>
-        <p style="font-size: 0.85em; color: #666; margin-top: 0.5rem;">
-            Откройте несколько вкладок - заметки будут синхронизироваться в реальном времени!
-        </p>
+    <!-- Push кнопки -->
+    <div style="margin-top: 2rem; text-align: center;">
+        <h3>Push-уведомления</h3>
+        <button id="enable-push" class="button success" style="display: none;">
+            Включить уведомления
+        </button>
+        <button id="disable-push" class="button error" style="display: none;">
+            Отключить уведомления
+        </button>
     </div>
 </div>

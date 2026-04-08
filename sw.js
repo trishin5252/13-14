@@ -1,164 +1,104 @@
-// ===== КОНФИГУРАЦИЯ КЭША =====
-const CACHE_NAME = 'app-shell-v3';
-const DYNAMIC_CACHE_NAME = 'dynamic-content-v2';
+const CACHE_NAME = 'notes-cache-v2';
+const DYNAMIC_CACHE_NAME = 'dynamic-content-v1';
 
 const ASSETS = [
-    '/',
-    '/index.html',
-    '/app.js',
-    '/style.css',
-    '/manifest.json',
-    '/content/home.html',
-    '/content/about.html',
-    '/icons/icon-192x192.png',
-    '/icons/icon-256x256.png',
-    '/icons/icon-512x512.png'
+    '/', '/index.html', '/app.js', '/manifest.json',
+    '/icons/icon-192x192.png', '/icons/icon-256x256.png', '/icons/icon-512x512.png'
 ];
 
-// ===== УСТАНОВКА (INSTALL) =====
-self.addEventListener('install', (event) => {
-    console.log('Service Worker: Установка...');
-    
+// ===== INSTALL =====
+self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Кэширование App Shell...');
-                return cache.addAll(ASSETS);
-            })
-            .then(() => {
-                console.log('App Shell закэширован');
-                return self.skipWaiting();
-            })
-            .catch((error) => {
-                console.error('Ошибка кэширования:', error);
-            })
+            .then(cache => cache.addAll(ASSETS))
+            .then(() => self.skipWaiting())
     );
 });
 
-// ===== АКТИВАЦИЯ (ACTIVATE) =====
-self.addEventListener('activate', (event) => {
-    console.log('Service Worker: Активация...');
-    
+// ===== ACTIVATE =====
+self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys()
-            .then((cacheNames) => {
-                return Promise.all(
-                    cacheNames
-                        .filter((name) => name !== CACHE_NAME && name !== DYNAMIC_CACHE_NAME)
-                        .map((name) => {
-                            console.log('Удаление старого кэша:', name);
-                            return caches.delete(name);
-                        })
-                );
-            })
-            .then(() => {
-                console.log('Service Worker активирован');
-                return self.clients.claim();
-            })
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.filter(key => key !== CACHE_NAME && key !== DYNAMIC_CACHE_NAME)
+                    .map(key => caches.delete(key))
+            );
+        }).then(() => self.clients.claim())
     );
 });
 
-// ===== ПЕРЕХВАТ ЗАПРОСОВ (FETCH) =====
-self.addEventListener('fetch', (event) => {
-    if (event.request.method !== 'GET') {
-        return;
-    }
-    
+// ===== FETCH =====
+self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
+    if (url.origin !== location.origin) return;
     
-    // Пропускаем запросы к другим источникам
-    if (url.origin !== location.origin) {
-        return;
-    }
-    
-    // Динамические страницы – Network First
     if (url.pathname.startsWith('/content/')) {
         event.respondWith(
             fetch(event.request)
-                .then((networkRes) => {
+                .then(networkRes => {
                     const resClone = networkRes.clone();
-                    caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
+                    caches.open(DYNAMIC_CACHE_NAME).then(cache => {
                         cache.put(event.request, resClone);
                     });
                     return networkRes;
                 })
-                .catch(() => {
-                    return caches.match(event.request)
-                        .then((cached) => cached || caches.match('/content/home.html'));
-                })
+                .catch(() => caches.match(event.request))
         );
-        return;
     }
-    
-    // Статические ресурсы – Cache First
-    event.respondWith(
-        caches.match(event.request)
-            .then((cachedResponse) => {
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-                
-                return fetch(event.request)
-                    .then((networkResponse) => {
-                        if (networkResponse && networkResponse.status === 200) {
-                            const responseClone = networkResponse.clone();
-                            caches.open(CACHE_NAME)
-                                .then((cache) => {
-                                    cache.put(event.request, responseClone);
-                                });
-                        }
-                        return networkResponse;
-                    })
-                    .catch((error) => {
-                        console.error('Ошибка сети:', error);
-                        return caches.match('/index.html');
-                    });
-            })
-    );
 });
 
 // ===== PUSH УВЕДОМЛЕНИЯ =====
-self.addEventListener('push', (event) => {
-    console.log('Push событие получено:', event);
+self.addEventListener('push', event => {
+    console.log('Push получен');
     
-    let data = {
-        title: 'Новое уведомление',
-        body: '',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-192x192.png'
-    };
-    
-    if (event.data) {
-        try {
-            data = { ...data, ...event.data.json() };
-        } catch (err) {
-            console.error('Ошибка парсинга push данных:', err);
-        }
-    }
+    const data = event.data ? event.data.json() : {};
     
     const options = {
-        body: data.body,
-        icon: data.icon,
-        badge: data.badge,
-        vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1
-        }
+        body: data.body || '',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        tag: 'notes-notification',
+        data: { reminderId: data.reminderId }
     };
     
+    // Добавляем кнопку "Отложить" только для напоминаний
+    if (data.reminderId) {
+        options.actions = [
+            { action: 'snooze', title: 'Отложить на 5 минут' }
+        ];
+    }
+    
     event.waitUntil(
-        self.registration.showNotification(data.title, options)
+        self.registration.showNotification(data.title || 'Новое уведомление', options)
     );
 });
 
-// ===== КЛИК ПО УВЕДОМЛЕНИЮ =====
-self.addEventListener('notificationclick', (event) => {
-    console.log('Клик по уведомлению:', event);
+// ===== ОБРАБОТКА КЛИКА ПО УВЕДОМЛЕНИЮ =====
+self.addEventListener('notificationclick', event => {
+    const notification = event.notification;
+    const action = event.action;
     
-    event.notification.close();
+    notification.close();
     
-    event.waitUntil(
-        clients.openWindow('/')
-    );
+    if (action === 'snooze') {
+        // Обработка кнопки "Отложить"
+        const reminderId = notification.data?.reminderId;
+        
+        if (reminderId) {
+            event.waitUntil(
+                fetch(`/snooze?reminderId=${reminderId}`, { method: 'POST' })
+                    .then(() => {
+                        console.log('Напоминание отложено');
+                        return self.registration.showNotification('Напоминание отложено', {
+                            body: 'Напоминание перенесено на 5 минут',
+                            icon: '/icons/icon-192x192.png'
+                        });
+                    })
+                    .catch(err => console.error('Snooze failed:', err))
+            );
+        }
+    } else {
+        // Обычный клик — открываем приложение
+        event.waitUntil(clients.openWindow('/'));
+    }
 });
